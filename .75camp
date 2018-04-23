@@ -1,2 +1,540 @@
-姓名：
-学号后4位：
+姓名：邹帅
+学号后4位：1145
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>扇形绘制</title>
+    <style>
+     #gridPanel{
+    width:480px;
+    height:480px;
+    margin:0 auto;
+    background-color:#bbada0;
+    border-radius:10px;
+    position:relative;
+}
+/* 单元格 */
+.grid,.cell{
+    width:100px;
+    height:100px;
+    border-radius:6px;
+}
+/* 背景单元格 */
+.grid {
+    margin:16px 0 0 16px;
+    float:left;
+    background-color:#ccc0b3;
+}
+/* 前景单元格 */
+.cell{
+    /*    top:-464px;*/
+    position:absolute;
+    background-color:transparent;
+    text-align:center;
+    line-height:100px;
+    font-size:60px;
+}
+/*为后续做数字移动动画 而准备*/
+/* 行top值 */
+#c00,#c01,#c02,#c03{top:16px;}
+#c10,#c11,#c12,#c13{top:132px;}
+#c20,#c21,#c22,#c23{top:248px;}
+#c30,#c31,#c32,#c33{top:364px;}
+/* 列left值 */
+#c00,#c10,#c20,#c30{left:16px;}
+#c01,#c11,#c21,#c31{left:132px;}
+#c02,#c12,#c22,#c32{left:248px;}
+#c03,#c13,#c23,#c33{left:364px;}
+/* 数字单元格分数背景颜色 */
+.n2{background-color:#eee3da}
+.n4{background-color:#ede0c8}
+.n8{background-color:#f2b179}
+.n16{background-color:#f59563}
+.n32{background-color:#f67c5f}
+.n64{background-color:#f65e3b}
+.n128{background-color:#edcf72}
+.n256{background-color:#edcc61}
+.n512{background-color:#9c0}
+.n1024{background-color:#33b5e5}
+.n2048{background-color:#09c}
+.n4096{background-color:#a6c}
+.n8192{background-color:#93c}
+.n8,.n16,.n32,.n64,.n128,.n256,.n512,.n1024,.n2048,.n4096,.n8192{color:#fff}
+.n1024,.n2048,.n4096,.n8192{font-size:40px}
+/**/
+
+/*分数显示*/
+p{
+    width:470px;
+    margin:15px auto 5px;
+    font-family:Arial;
+    font-weight:bold;
+    font-size:40px;
+
+    padding:5px;
+    background-color:#ccc;
+    border-radius:10px;
+    color:#e4393c;
+}
+#score{
+    color:#000;
+}
+
+/*Game Over*/
+#gameOver{
+    width:100%;
+    height:100%;
+    position:absolute;
+    top:0;
+    left:0;
+    display:none;
+}
+#gameOver>div{
+    width:100%;
+    height:100%;
+    background-color:#555;
+    opacity:.5;    
+}
+#gameOver>p{
+    width:300px;
+    height:200px;
+    border:1px solid #edcf72;
+    line-height:1.6em;
+    text-align:center;
+    background-color:#fff;
+    position:absolute;
+    border-radius:10px;
+    top:50%;
+    left:50%;
+    margin-top:-135px;
+    margin-left:-150px;
+}
+/*再来一次按钮*/
+.button{
+    padding:10px;
+    border-radius:6px;
+    background-color:#9f8b77;
+    color:#fff;
+    cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+    <!-- 分数行 -->
+  <p id="scorePanel">Score:<span id="score"></span></p>
+  <div id="gridPanel">
+    <!-- 背景格 -->
+    <div id="g00" class="grid"></div>
+    <div id="g01" class="grid"></div>
+    <div id="g02" class="grid"></div>
+    <div id="g03" class="grid"></div>
+    
+    <div id="g10" class="grid"></div>
+    <div id="g11" class="grid"></div>
+    <div id="g12" class="grid"></div>
+    <div id="g13" class="grid"></div>
+    
+    <div id="g20" class="grid"></div>
+    <div id="g21" class="grid"></div>
+    <div id="g22" class="grid"></div>
+    <div id="g23" class="grid"></div>
+    
+    <div id="g30" class="grid"></div>
+    <div id="g31" class="grid"></div>
+    <div id="g32" class="grid"></div>
+    <div id="g33" class="grid"></div>
+
+    <!-- 前景格 -->
+    <div id="c00" class="cell"></div>
+    <div id="c01" class="cell"></div>
+    <div id="c02" class="cell"></div>
+    <div id="c03" class="cell"></div>
+    
+    <div id="c10" class="cell"></div>
+    <div id="c11" class="cell"></div>
+    <div id="c12" class="cell"></div>
+    <div id="c13" class="cell"></div>
+    
+    <div id="c20" class="cell"></div>
+    <div id="c21" class="cell"></div>
+    <div id="c22" class="cell"></div>
+    <div id="c23" class="cell"></div>
+    
+    <div id="c30" class="cell"></div>
+    <div id="c31" class="cell"></div>
+    <div id="c32" class="cell"></div>
+    <div id="c33" class="cell"></div>
+
+  </div>
+  <!-- 结束容器 -->
+  <div id="gameOver">
+    <!-- 半透明灰色背景 -->
+    <div>
+    </div>
+    <!--居中小窗口-->
+    <p>Game Over!<br />Score:<span id="finalScore"></span><br/><a class="button" onclick="game.start()">Try again!</a></p>    
+  </div>
+  <script>
+      var game={
+    data:[],//保存所有数字的二位数组
+    rn:4,//定义行数
+    cn:4,//定义列数
+    state:0,//游戏当前状态：running|GameOver
+    RUNNING:1,
+    GAMEOVER:0,
+    score:0,//定义总分数
+    //判断游戏状态是否结束
+    isGameOver:function(){
+        //如果没有满,则返回false
+        if (!this.isFull())
+        {
+            return false;
+        }else{
+            //从左上角第一个元素开始，遍历二维数组
+            for (var row=0; row<this.rn; row++)
+            {
+                for (var col=0; col<this.cn; col++)
+                {
+                    //如果当前元素不是最右侧元素
+                    if(col<this.cn-1){
+                        if(this.data[row][col]==this.data[row][col+1]){return false;}
+                    }
+                    if(row<this.rn-1){
+                        if(this.data[row][col]==this.data[row+1][col]){return false;}
+                    }
+                }
+            }
+            return true;
+        }
+    },
+    start:function(){//游戏开始方法
+        this.state=this.RUNNING;
+        //隐藏游戏结束界面
+        document.getElementById("gameOver").style.display="none";
+        this.data=[//初始化二位数组
+            [0,2,2,2],
+            [0,0,2,2],
+            [4,2,0,0],
+            [2,0,0,2]
+        ];
+        this.score=0;//重置分数为0
+        
+        for (var r=0; r<this.rn; r++)
+        {
+            this.data[r]=[];//向空数组中添加行
+            for (var c=0; c<this.cn; c++)
+            {
+                this.data[r][c]=0;//向当前空数组中加0
+            }
+        }
+        
+        //在两个随机位置生成2或4
+        this.randomNum();
+        this.randomNum();
+        this.updataView();//将数字写入前景grid中
+    },
+    randomNum:function(){//在随机空位置生成一个数
+        //0-3随机生成一个行号row
+        //0-3随机生成一个列号col
+        //如果data[row][col]==0
+        //    Math.random():
+        //    随机生成一个数>=0.5?4:2
+        //    放入data[row][col]
+        if(this.isFull()) return -1;//判断二位数组中是否已满，满 返回-1
+        while(true){
+            var row=parseInt(Math.random()*this.rn);
+            var col=parseInt(Math.random()*this.cn);
+            if(!this.data[row][col]){
+                this.data[row][col]=Math.random()>=0.5?4:2;
+                break;
+            }
+        }
+    },
+    isFull:function(){//判断当前数组是否已满
+        for (var row=0; row<this.rn; row++)
+        {
+            for (var col=0; col<this.cn; col++)
+            {
+                if (!this.data[row][col])
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    },
+    updataView:function(){//将二位数组中每个格的数字放入前景格中
+        //遍历二位素组中每个元素，
+        for (var row=0; row<this.rn; row++)
+        {
+            for (var col=0; col<this.cn; col++)
+            {
+                //获取要div标签
+                var div=document.getElementById("c"+row+col);
+                //console.log("c"+row+col);
+                var curr=this.data[row][col];//当前元素
+                //修改grid的数字内容
+                div.innerHTML=curr!=0?curr:"";
+                //修改div的class属性
+                div.className=curr!=0?"cell n"+curr:"cell";
+            }
+        }
+        document.getElementById("score").innerHTML=this.score;
+        //判断并修改游戏状态
+        if (this.isGameOver())
+        {
+            this.state=this.GAMEOVER;
+            //修改节点style属性下的display的属性为"block"
+            document.getElementById("finalScore").innerHTML=this.score;
+            document.getElementById("gameOver").style.display="block";
+        }
+    },
+
+    //实现左移动
+    //找当前位置右侧，下一个不为0的数
+    getRightNext:function(row,col){
+        //从col+1 遍历row行中剩余元素，<this.cn
+        //    遍历到不为0的元素返回nextc-->下一个元素的列下标
+        //    循环退出返回-1
+        for ( col+=1; col<this.cn; col++)
+        {
+            if (this.data[row][col])
+            {
+                return col;
+            }
+        }
+        return -1;
+    },
+    /*判断并向左移动指定行中的每个元素*/
+    moveLeftInRow:function(row){
+        //0开始，遍历row行中每一个元素，<cn-1结束
+        //获得当前元素下一个不为0的元素的下标nextc
+        //如果nextc==-1，说明右侧么有元素了，退出循环
+        //否则 
+        //    如果自己==0 则将下一个位置放入当前位置，下一个位置设置为零，col--重新检查
+        //    如果当前位置==nextc的位置，将当前位置*=2;下一个位置设置为0;
+        for (var col=0; col<this.cn-1; col++)
+        {
+            var nextc=this.getRightNext(row,col);
+            if (nextc==-1){return nextc;}
+            else if (this.data[row][col]==0)
+            {
+                this.data[row][col]=this.data[row][nextc];
+                this.data[row][nextc]=0;
+                col--;
+            }
+            else if (this.data[row][col]==this.data[row][nextc])
+            {
+                this.data[row][col]*=2;
+                this.data[row][nextc]=0;
+                this.score+=this.data[row][col];//将当前值累加到score属性上
+            }
+        }
+    },
+    /*向左移动所有行*/
+    moveLeft(){
+        var oldStr=this.data.toString();//判断字符串是否移动
+        //循环遍历每一行
+        // 调用moveLeftInRow
+        //调用 randomNum(),随机生成一个数
+        //调用 updataView(),更新页面
+        for (var row=0; row<this.rn; row++)
+        {
+            this.moveLeftInRow(row);
+        }
+        if(oldStr!=this.data.toString()){
+            this.randomNum();
+            this.updataView();
+        }
+    },
+    //实现右移动
+    //找当前位置左侧，下一个不为0的数
+    getLeftNext:function(row,col){
+        //从col-1开始，遍历row行中剩余元素， >=0结束
+        for ( col-=1; col>=0; col--)
+        {
+            if (this.data[row][col])
+            {
+                return col;
+            }
+        }
+        return -1;
+    },
+    /*判断并向右移动指定行中的每个元素*/
+    moveRightInRow:function(row){
+        for (var col=this.cn; col>0; col--)
+        {
+            var nextc=this.getLeftNext(row,col);
+            if (nextc==-1){return nextc;}
+            else if (this.data[row][col]==0)
+            {
+                this.data[row][col]=this.data[row][nextc];
+                this.data[row][nextc]=0;
+                col++;
+            }
+            else if (this.data[row][col]==this.data[row][nextc])
+            {
+                this.data[row][col]*=2;
+                this.data[row][nextc]=0;
+                this.score+=this.data[row][col];//将当前值累加到score属性上
+            }
+        }
+    },
+    /*向右移动所有行*/
+    moveRight(){
+        var oldStr=this.data.toString();
+        //循环遍历每一行
+        // 调用moveRightInRow()
+        //调用 randomNum(),随机生成一个数
+        //调用 updataView(),更新页面
+        for (var row=0; row<this.rn; row++)
+        {
+            this.moveRightInRow(row);
+        }
+        if(oldStr!=this.data.toString()){
+            this.randomNum();
+            this.updataView();
+        }
+    },
+    //实现向上移动
+    /*找到当前位置下侧，不为0的数*/
+    getDownNext:function(row,col){
+        //nextr从row+1开始，到<this.rn结束
+        for ( row+=1; row<this.rn; row++)
+        {
+            if (this.data[row][col])
+            {
+                return row;
+            }
+        }
+        return -1;
+    },
+    /*判断并向上移动指定行中的每个元素*/
+    moveUpInCol:function(col){
+        //row从0开始，到 <rn-1,遍历每行元素
+        for (var row=0; row<this.rn-1; row++)
+        {
+            //先获得当前位置下方不为0的行nextr
+            var nextr=this.getDownNext(row,col);
+            if (nextr==-1){return nextr;}//如果next==-1
+            //否则
+            else if (this.data[row][col]==0)//如果当前位置等于0
+            {
+                //当前位置替换为nextr位置的元素
+                this.data[row][col]=this.data[nextr][col];
+                //将nextr位置设置为0
+                this.data[nextr][col]=0;
+                row--;
+            }
+            //如果当前位置等于nextr位置
+            else if (this.data[row][col]==this.data[nextr][col])
+            {
+                //将当前位置值*=2
+                this.data[row][col]*=2;
+                //将nextr位置设置为0
+                this.data[nextr][col]=0;
+                this.score+=this.data[row][col];//将当前值累加到score属性上
+            }
+        }
+    },
+    /*向上移动所有行*/
+    moveUp(){
+        var oldStr=this.data.toString();//判断字符串是否移动
+        //循环遍历每一行
+        // 调用moveUpInCol()
+        //调用 randomNum(),随机生成一个数
+        //调用 updataView(),更新页面
+        for (var col=0; col<this.cn; col++)
+        {
+            this.moveUpInCol(col);
+        }
+        if(oldStr!=this.data.toString()){
+            this.randomNum();
+            this.updataView();
+        }
+    },
+    //实现向下移动
+    /*找到当前位置上侧，不为0的数*/
+    getUpNext:function(row,col){
+        //nextr从row-1开始，到<this.rn结束
+        for ( row-=1; row>=0; row--)
+        {
+            if (this.data[row][col])
+            {
+                return row;
+            }
+        }
+        return -1;
+    },
+    /*判断并向下移动指定行中的每个元素*/
+    moveDownInCol:function(col){
+        //row从rn-1开始
+        for (var row=this.rn-1; row>=0; row--)
+        {
+            var nextr=this.getUpNext(row,col);
+            //console.log((row+1)+"行"+(col+1)+"列："+nextr);
+            if (nextr==-1){return nextr;}
+            else if (this.data[row][col]==0)
+            {
+                this.data[row][col]=this.data[nextr][col];
+                this.data[nextr][col]=0;
+                row++;
+            }
+            else if (this.data[row][col]==this.data[nextr][col])
+            {
+                this.data[row][col]*=2;
+                this.data[nextr][col]=0;
+                this.score+=this.data[row][col];//将当前值累加到score属性上
+            }
+        }
+    },
+    /*向下移动所有行*/
+    moveDown(){
+        var oldStr=this.data.toString();//判断字符串是否移动
+        //循环遍历每一行
+        // 调用moveDownInCol()
+        //调用 randomNum(),随机生成一个数
+        //调用 updataView(),更新页面
+        for (var col=0; col<this.cn; col++)
+        {
+            this.moveDownInCol(col);
+        }
+        if(oldStr!=this.data.toString()){
+            this.randomNum();
+            this.updataView();
+        }
+    }
+}
+//onload事件：当页面加载后自动执行
+window.onload=function(){
+    game.start();//页面加载后，自动启动游戏
+    //console.log(game.getDownNext(0,0));
+    //console.log(game.getUpNext(3,1));
+    //当按键盘按键时，触发移动
+    document.onkeydown=function(){
+        if(game.state==game.RUNNING){
+            //获得事件对象
+            var e=window.event||documents[0];
+            //获得键盘号:e.keyCode 左37上38右39下40
+            if (e.keyCode==37)//左键
+            {
+                game.moveLeft();
+            }else if (e.keyCode==38)//上键
+            {
+                game.moveUp();
+            }else if (e.keyCode==39)//右键
+            {
+                game.moveRight();
+            }else if (e.keyCode==40)//下键
+            {
+                game.moveDown();
+            }
+        }
+    }
+}
+  </script>
+ </body>
+</html>
